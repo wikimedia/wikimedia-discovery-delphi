@@ -21,8 +21,12 @@ sidebar <- dashboardSidebar(
 body <- dashboardBody(
   tabItems(
     tabItem(tabName = "arima_search_api_cirrus",
-            dygraphOutput("arima_search_api_cirrus_predictions"),
-            dygraphOutput("arima_search_api_cirrus_diagnostics"))
+            fluidRow(valueBoxOutput("arima_search_api_cirrus_previous", width = 7),
+                     valueBoxOutput("arima_search_api_cirrus_prediction", width = 5)
+            ),
+            dygraphOutput("arima_search_api_cirrus_predictions", height = "300px"),
+            dygraphOutput("arima_search_api_cirrus_diagnostics", height = "250px"),
+            includeMarkdown("docs/arima_search_api_cirrus.md"))
   )
 )
 
