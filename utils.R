@@ -2,10 +2,7 @@
 library(magrittr)
 library(polloi)
 library(xts)
-library(dplyr)
 library(forecast)
-library(ggplot2)
-library(gridExtra)
 
 read_api <- function() {
   api_usage <<- polloi::read_dataset("search/search_api_aggregates.tsv") %>%

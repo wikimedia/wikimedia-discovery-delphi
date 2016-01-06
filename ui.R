@@ -3,7 +3,7 @@ library(shinydashboard)
 library(dygraphs)
 
 #Header elements for the visualisation
-header <- dashboardHeader(title = "Forecasts (Prototype)", disable = FALSE)
+header <- dashboardHeader(title = "Forecasts", disable = FALSE)
 
 #Sidebar elements for the search visualisations.
 sidebar <- dashboardSidebar(
