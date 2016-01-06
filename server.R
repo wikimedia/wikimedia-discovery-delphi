@@ -6,6 +6,7 @@ shinyServer(function(input, output) {
   
   if (Sys.Date() != existing_date) {
     read_api()
+    predict_api_cirrus()
     existing_date <<- Sys.Date()
   }
   
