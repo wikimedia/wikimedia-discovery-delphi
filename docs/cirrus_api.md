@@ -1,7 +1,7 @@
-# Search Metrics - Cirrus API usage modeled with ARIMA
+# Cirrus API usage
 
-The basic premise is that once we figure out the parameters (number of terms of each component) in an [autoregressive integrated moving average (ARIMA) model](https://en.wikipedia.org/wiki/Autoregressive_integrated_moving_average), the values of the terms' coefficients can be estimated daily and a prediction for the next day can be made. The models may be reassessed quarterly to see whether the number of autoregressive or moving average terms needs to be changed.
+Cirrus API is used to search for a particular term or phrase and getting back packages that contain that term in either the title *or* the page's content.
 
-After experimenting with different ARIMA models in [the **explorer** app](https://github.com/bearloga/branch/tree/master/explorer), we decided on ARIMA(0,1,2)x(2,1,1) w/ period of 7 as the best one -- decided by [Akaike Information Criterion (AIC)](https://en.wikipedia.org/wiki/Akaike_information_criterion).
+We studied multiple [autoregressive integrated moving average (ARIMA) model](https://en.wikipedia.org/wiki/Autoregressive_integrated_moving_average) models using [the **explorer** app](https://github.com/bearloga/wmf-discovery-forecasting/tree/master/explorer), and settled on ARIMA(0,1,2)x(2,1,1) w/ period of 7 as the best one -- decided by [Akaike Information Criterion (AIC)](https://en.wikipedia.org/wiki/Akaike_information_criterion).
 
-The predictions above have been backfilled. That is, we go back *n* days and fit a model using all the data up until then, and then go day by day until we get caught up with the present.
+We also have a competing model that uses [Bayesian structural time series (BSTS)](https://en.wikipedia.org/wiki/Bayesian_structural_time_series), with weekly and monthly seasonalities and U.S. holiday effects.
