@@ -1,55 +1,105 @@
+library(shiny)
+library(shinydashboard)
+library(dygraphs)
+library(xts)
+
 source("utils.R")
 
 existing_date <- Sys.Date() - 1
 
-shinyServer(function(input, output) {
-  
+shinyServer(function(input, output, session) {
+
   if (Sys.Date() != existing_date) {
+    progress <- shiny::Progress$new(session, min = 0, max = 1)
+    on.exit(progress$close())
+    progress$set(message = "Downloading Cirrus API forecasts & data...", value = 0)
     read_api()
-    predict_api_cirrus(90)
+    progress$set(message = "Finished downloading datasets.", value = 1)
     existing_date <<- Sys.Date()
   }
-  
-  output$arima_search_api_cirrus_previous <- renderValueBox({
-    temp <- as.numeric(abs(tail(predictions_api_cirrus, 2)[1, "Rel_Diff"]))
-    valueBox(sprintf("%.2f%% %s requests than expected",
-                     100 * tail(predictions_api_cirrus, 2)$Rel_Diff[1],
-                     ifelse(temp < 0, "more", "less")),
-             paste0("Relative % difference for 'yesterday' (", tail(index(predictions_api_cirrus), 2)[1],")"),
-             color = polloi::cond_color(temp < 0.1))
+
+  output$cirrus_api_arima_previous <- renderValueBox({
+    value_box_previous(api_usage, "arima")
   })
-  
-  output$arima_search_api_cirrus_prediction <- renderValueBox({
-    temp <- polloi::compress(tail(predictions_api_cirrus, 1)[, 2:4])
-    valueBox(sprintf("~%s (%s-%s)", temp[1], temp[2], temp[3]),
-             paste0("Expected requests and 80% Confidence Interval for 'today' (",
-                    tail(index(predictions_api_cirrus), 1), ")"), color = "black")
+
+  output$cirrus_api_arima_prediction <- renderValueBox({
+    value_box_prediction(api_usage, "arima", input$confidence)
   })
-  
-  output$arima_search_api_cirrus_predictions <- renderDygraph({
-    dygraph(predictions_api_cirrus[, c("Actual", "Predicted", "Lower80", "Upper80")],
+
+  output$cirrus_api_bsts_previous <- renderValueBox({
+    value_box_previous(api_usage, "bsts")
+  })
+
+  output$cirrus_api_bsts_prediction <- renderValueBox({
+    value_box_prediction(api_usage, "bsts", input$confidence)
+  })
+
+  output$cirrus_api_predictions <- renderDygraph({
+    cols_to_keep <- "actual"
+    if (input$models == "both" || input$models == "arima") {
+      cols_to_keep <- c(cols_to_keep,  "arima_point_est", "arima_lower_80", "arima_upper_80")
+    }
+    if (input$models == "both" || input$models == "bsts") {
+      cols_to_keep <- c(cols_to_keep,  "bsts_point_est", "bsts_lower_80", "bsts_upper_80")
+    }
+    if (input$confidence == "95") {
+      cols_to_keep <- sub("80", "95", cols_to_keep, fixed = TRUE)
+    }
+    dyOut <- dygraph(api_usage[, cols_to_keep],
             ylab = "Events", group = "api-cirrus",
-            main = "Predictions with a daily updated ARIMA model") %>%
-      dySeries("Actual", color = "black", strokeWidth = 2) %>%
-      dySeries(c("Lower80", "Predicted", "Upper80"), label = "Predicted",
-               color = "blue", strokeWidth = 2) %>%
+            main = "Cirrus API usage modeled with ARIMA & BSTS") %>%
+      dySeries("actual", label = "Actual", color = "black")
+    if (input$models == "both" || input$models == "arima") {
+      if (input$confidence == "95") {
+        dyOut <- dySeries(dyOut, c("arima_lower_95", "arima_point_est", "arima_upper_95"), label = "ARIMA",
+                          color = RColorBrewer::brewer.pal(3, "Set1")[1])
+      } else {
+        dyOut <- dySeries(dyOut, c("arima_lower_80", "arima_point_est", "arima_upper_80"), label = "ARIMA",
+                          color = RColorBrewer::brewer.pal(3, "Set1")[1])
+      }
+    }
+    if (input$models == "both" || input$models == "bsts") {
+      if (input$confidence == "95") {
+        dyOut <- dySeries(dyOut, c("bsts_lower_95", "bsts_point_est", "bsts_upper_95"), label = "BSTS",
+                          color = RColorBrewer::brewer.pal(3, "Set1")[2])
+      } else {
+        dyOut <- dySeries(dyOut, c("bsts_lower_80", "bsts_point_est", "bsts_upper_80"), label = "BSTS",
+                          color = RColorBrewer::brewer.pal(3, "Set1")[2])
+      }
+    }
+    dyOut %>%
       dyOptions(labelsKMB = TRUE) %>%
       dyLegend(width = 400) %>%
       dyCSS(css = system.file("custom.css", package = "polloi"))
   })
-  
-  output$arima_search_api_cirrus_diagnostics <- renderDygraph({
-    dygraph(100 * predictions_api_cirrus[, "Rel_Diff"],
-            ylab = "Relative Difference", group = "api-cirrus",
-            main = "Relative percentage difference between observed and expected") %>%
-      dyLimit(limit = 0) %>%
-      dySeries("Rel_Diff", label = "Relative Difference",
-               color = "blue", strokeWidth = 2) %>%
-      dyAxis("y", valueRange = c(-25, 25),
-             axisLabelFormatter = 'function(x) { return x + "%"; }',
-             valueFormatter = 'function(x) { return round(x, 3) + "%"; }') %>%
+
+  output$cirrus_api_diagnostics <- renderDygraph({
+    switch(input$models,
+           both = {
+             cols_to_keep = c("arima_percent_error", "bsts_percent_error")
+           },
+           arima = {
+             cols_to_keep = "arima_percent_error"
+           },
+           bsts = {
+             cols_to_keep = "bsts_percent_error"
+           })
+    dyOut <- dygraph(api_usage[, cols_to_keep],
+            ylab = "% Error", group = "api-cirrus",
+            main = "Percent error between predicted and observed Cirrus API usage counts") %>%
+      dyLimit(limit = 0)
+    if (input$models == "both" || input$models == "arima") {
+      dyOut <- dySeries(dyOut, "arima_percent_error", label = "ARIMA's % Error",
+                        color = RColorBrewer::brewer.pal(3, "Set1")[1])
+    }
+    if (input$models == "both" || input$models == "bsts") {
+      dyOut <- dySeries(dyOut, "bsts_percent_error", label = "BSTS's % Error",
+                        color = RColorBrewer::brewer.pal(3, "Set1")[2])
+    }
+    dyOut %>%
+      dyAxis("y", valueRange = c(-1, 1) * max(abs(as.numeric(api_usage[, c("arima_percent_error", "bsts_percent_error")])), na.rm = TRUE)) %>%
       dyLegend(width = 400) %>%
       dyCSS(css = system.file("custom.css", package = "polloi"))
   })
-  
+
 })

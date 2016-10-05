@@ -12,24 +12,40 @@ sidebar <- dashboardSidebar(
     tags$script(src = "custom.js")
   ),
   sidebarMenu(
-    menuItem(text = "Search Metrics (ARIMA)",
-             menuSubItem(text = "Cirrus API", tabName = "arima_search_api_cirrus"))
-  )
+    menuItem(text = "Search Metrics",
+             menuSubItem(text = "Summary", tabName = "search_summary"),
+             menuSubItem(text = "Cirrus API", tabName = "cirrus_api"))
+  ),
+  radioButtons("confidence", "Confidence", c("80%" = "80", "95%" = "95"), inline = FALSE)
 )
 
 #Body elements for the search visualisations.
 body <- dashboardBody(
   tabItems(
-    tabItem(tabName = "arima_search_api_cirrus",
-            fluidRow(valueBoxOutput("arima_search_api_cirrus_previous", width = 7),
-                     valueBoxOutput("arima_search_api_cirrus_prediction", width = 5)
-            ),
-            dygraphOutput("arima_search_api_cirrus_predictions", height = "300px"),
-            dygraphOutput("arima_search_api_cirrus_diagnostics", height = "250px"),
-            includeMarkdown("docs/arima_search_api_cirrus.md"))
+    tabItem(
+      tabName = "search_summary",
+      h2("Cirrus API Usage"),
+      h3("ARIMA Forecast"),
+      fluidRow(
+        valueBoxOutput("cirrus_api_arima_previous", width = 7),
+        valueBoxOutput("cirrus_api_arima_prediction", width = 5)
+      ),
+      h3("BSTS Forecast"),
+      fluidRow(
+        valueBoxOutput("cirrus_api_bsts_previous", width = 7),
+        valueBoxOutput("cirrus_api_bsts_prediction", width = 5)
+      )
+    ),
+    tabItem(
+      tabName = "cirrus_api",
+      radioButtons("models", "Model to show", list("Both" = "both", "ARIMA only" = "arima", "BSTS only" = "bsts"), inline = TRUE),
+      dygraphOutput("cirrus_api_predictions", height = "300px"),
+      dygraphOutput("cirrus_api_diagnostics", height = "250px"),
+      includeMarkdown("docs/cirrus_api.md")
+    )
   )
 )
 
 
 dashboardPage(header, sidebar, body, skin = "black",
-              title = "Forecasting Dashboard | Discovery | Engineering | Wikimedia Foundation")
+              title = "Forecast Dashboard | Discovery | Engineering | Wikimedia Foundation")

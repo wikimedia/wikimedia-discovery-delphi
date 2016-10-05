@@ -1,46 +1,46 @@
 # Dependent libs
 library(magrittr)
 library(polloi)
-library(xts)
-library(forecast)
 
 read_api <- function() {
-  api_usage <<- polloi::read_dataset("search/search_api_aggregates.tsv") %>%
-  tidyr::spread(event_type, events) %>%
-  { xts::xts(.[, -1], order.by = .$timestamp) }
+  # arima_forecast <- read_dataset("discovery-forecasts/search_api_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/search_api_arima.tsv", col_types = "Dddddd")
+  names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
+  # bsts_forecast <- read_dataset("discovery-forecasts/search_api_bsts.tsv")
+  bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/search_api_bsts.tsv", col_types = "Dddddd")
+  names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
+  interim <- read_dataset("search/search_api_aggregates.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
+    { .$date <- as.Date(.$date); . } %>%
+    dplyr::distinct(date, type, .keep_all = TRUE) %>%
+    dplyr::filter(type == "cirrus") %>%
+    tidyr::spread(type, events) %>%
+    dplyr::rename(actual = cirrus) %>%
+    dplyr::full_join(arima_forecast, by = "date") %>%
+    dplyr::full_join(bsts_forecast, by = "date") %>%
+    dplyr::mutate(
+      arima_percent_error = 100*(actual - arima_point_est)/arima_point_est,
+      bsts_percent_error = 100*(actual - bsts_point_est)/bsts_point_est
+    )
+  api_usage <<- xts::xts(interim[, -1], order.by = interim$date)
 }
 
-predict_backfill_arima <- function(data, var, arima_params = NULL, days = 7,
-                                   scaling_function = function(x, x_ref) { max(x, x_ref) }) {
-  if (is.null(arima_params)) {
-    arima_params <- list(order = c(0L, 0L, 0L),
-                         seasonal = list(order = c(0L, 0L, 0L), period = NA))
-  }
-  n <- days; predictions <- as.data.frame(matrix(0, nrow = n + 1, ncol = 4))
-  days <- tail(index(data), n)
-  days <- c(days, days[n] + 1)
-  for ( i in 1:length(days) ) {
-    day <- days[i]
-    fit <- arima(data[sprintf('/%s', day - 1), var],
-                 order = arima_params$order,
-                 seasonal = arima_params$seasonal)
-    predicted <- forecast(fit, h = 1)
-    reality <- as.numeric(data[day, var])
-    if (length(reality) == 0) {
-      reality <- NA
-    }
-    predictions[i, ] <- cbind(reality, as.data.frame(predicted)[, 1:3])
-  }; rm(fit, predicted, reality, i, day, n)
-  predictions$Rel_Diff = apply(predictions[, 1:2], 1, function(x) { return((x[2]-x[1])/scaling_function(x[2], x[1])) })
-  predictions$Date <- days
-  predictions <- xts(predictions[, 1:5], order.by = predictions$Date)
-  prior_data <- cbind(data[!(index(data) %in% days), var], NA, NA, NA, NA)
-  predictions <- rbind(prior_data, predictions)
-  colnames(predictions) <- c('Actual', 'Predicted', 'Lower80', 'Upper80', 'Rel_Diff')
-  return(predictions)
+value_box_previous <- function(data, model = c("arima", "bsts")) {
+  cols_to_keep <- c("actual", paste0(model[1], c("_point_est", "_percent_error")))
+  temp <- tail(api_usage, 2)[1, cols_to_keep]
+  return({
+    valueBox(value = sprintf("%.2f%% %s requests than expected",
+                             temp[[3]], ifelse(temp[[3]] > 0, "more", "less")),
+             subtitle = paste("% error for", as.character(index(temp), "%A (%d %B %Y) |"), polloi::compress(temp[[1]]), "actual vs.", polloi::compress(temp[[2]]), "predicted by", toupper(model[1])),
+             color = polloi::cond_color(temp[[3]] > 0))
+  })
 }
 
-predict_api_cirrus <- function(days = 90) {
-  predictions_api_cirrus <<- predict_backfill_arima(api_usage, 'cirrus', days = days,
-    arima_params = list(order = c(0, 1, 2), seasonal = list(order = c(2, 1, 1), period = 7)))
+value_box_prediction <- function(data, model = c("arima", "bsts"), conf_level = c("80", "95")) {
+  cols_to_keep <- paste0(model[1], c("_point_est", paste0(c("_lower_", "_upper_"), conf_level[1])))
+  temp <- tail(data, 1)[, cols_to_keep]
+  return({
+    valueBox(value = sprintf("~%s (%s-%s)", polloi::compress(temp[[1]]), polloi::compress(temp[[2]]), polloi::compress(temp[[3]])),
+             subtitle = paste0("Expected requests and ", conf_level, "% Confidence Interval for ", as.character(index(temp), "%a (%d %B %Y)")),
+             color = "black")
+  })
 }
