@@ -14,8 +14,10 @@ shinyServer(function(input, output, session) {
     on.exit(progress$close())
     progress$set(message = "Downloading Cirrus API forecasts & data...", value = 0)
     read_api()
-    progress$set(message = "Downloading zero results rate forecasts & data...", value = 0.5)
+    progress$set(message = "Downloading zero results rate forecasts & data...", value = 0.333)
     read_zrr()
+    progress$set(message = "Downloading WDQS forecasts & data...", value = 0.666)
+    read_wdqs()
     progress$set(message = "Finished downloading datasets.", value = 1)
     existing_date <<- Sys.Date()
   }
@@ -53,11 +55,13 @@ shinyServer(function(input, output, session) {
   })
 
   output$zrr_overall_predictions <- renderDygraph({
-    dygraph_predictions(zrr_overall, input$models, input$confidence, .terms = list(title = "Overall zero results rate", units = "% of searches yielding zero results"), .dygroup = "zrr-overall")
+    dygraph_predictions(zrr_overall, input$models, input$confidence, .terms = list(title = "Overall zero results rate", units = "% of searches yielding zero results"), .dygroup = "zrr-overall") %>%
+      dyEvent(as.Date("2016-03-15"), "Completion Suggester", labelLoc = "bottom", color = "black", strokePattern = "dashed")
   })
 
   output$zrr_overall_diagnostics <- renderDygraph({
-    dygraph_diagnostics(zrr_overall, input$models, .terms = list(title = "overall zero results rate"), .dygroup = "zrr-overall")
+    dygraph_diagnostics(zrr_overall, input$models, .terms = list(title = "overall zero results rate"), .dygroup = "zrr-overall") %>%
+      dyEvent(as.Date("2016-03-15"), "Completion Suggester", labelLoc = "bottom", color = "black", strokePattern = "dashed")
   })
 
   output$cirrus_api_predictions <- renderDygraph({
@@ -66,6 +70,22 @@ shinyServer(function(input, output, session) {
 
   output$cirrus_api_diagnostics <- renderDygraph({
     dygraph_diagnostics(api_usage, input$models, .terms = list(title = "Cirrus API usage counts"), .dygroup = "cirrus-api")
+  })
+
+  output$wdqs_homepage_predictions <- renderDygraph({
+    dygraph_predictions(wdqs_homepage, input$models, input$confidence, .terms = list(title = "WDQS homepage traffic", units = "Visits"), .dygroup = "wdqs-homepage")
+  })
+
+  output$wdqs_homepage_diagnostics <- renderDygraph({
+    dygraph_diagnostics(wdqs_homepage, input$models, .terms = list(title = "WDQS homepage visits"), .dygroup = "wdqs-homepage")
+  })
+
+  output$wdqs_sparql_predictions <- renderDygraph({
+    dygraph_predictions(wdqs_sparql, input$models, input$confidence, .terms = list(title = "SPARQL endpoint usage", units = "Calls"), .dygroup = "wdqs-sparql")
+  })
+
+  output$wdqs_sparql_diagnostics <- renderDygraph({
+    dygraph_diagnostics(wdqs_sparql, input$models, .terms = list(title = "SPARQL endpoint usage counts"), .dygroup = "wdqs-sparql")
   })
 
 })

@@ -3,7 +3,7 @@ library(shinydashboard)
 library(dygraphs)
 
 #Header elements for the visualisation
-header <- dashboardHeader(title = "Discovery's Forecasts", disable = FALSE)
+header <- dashboardHeader(title = "Usage Forecasts", disable = FALSE)
 
 #Sidebar elements for the search visualisations.
 sidebar <- dashboardSidebar(
@@ -15,7 +15,10 @@ sidebar <- dashboardSidebar(
     menuItem(text = "Search Metrics",
              menuSubItem(text = "Summary", tabName = "search_summary"),
              menuSubItem(text = "Overall ZRR", tabName = "zrr_overall"),
-             menuSubItem(text = "Cirrus API", tabName = "cirrus_api"))
+             menuSubItem(text = "Cirrus API", tabName = "cirrus_api")),
+    menuItem(text = "WDQS Usage",
+             menuSubItem(text = "Homepage traffic", tabName = "wdqs_homepage"),
+             menuSubItem(text = "SPARQL endpoint", tabName = "wdqs_sparql"))
   ),
   radioButtons("models", "Model to show", list("Both" = "both", "ARIMA only" = "arima", "BSTS only" = "bsts"), inline = FALSE),
   radioButtons("confidence", "Confidence", c("80%" = "80", "95%" = "95"), inline = FALSE)
@@ -72,9 +75,23 @@ body <- dashboardBody(
       dygraphOutput("zrr_overall_predictions", height = "300px"),
       dygraphOutput("zrr_overall_diagnostics", height = "250px"),
       includeMarkdown("docs/zrr_overall.md")
+    ),
+    tabItem(
+      tabName = "wdqs_homepage",
+      dygraphOutput("wdqs_homepage_predictions", height = "300px"),
+      dygraphOutput("wdqs_homepage_diagnostics", height = "250px"),
+      includeMarkdown("docs/wdqs_homepage.md")
+    ),
+    tabItem(
+      tabName = "wdqs_sparql",
+      dygraphOutput("wdqs_sparql_predictions", height = "300px"),
+      dygraphOutput("wdqs_sparql_diagnostics", height = "250px"),
+      includeMarkdown("docs/wdqs_sparql.md")
     )
   )
 )
 
-dashboardPage(header, sidebar, body, skin = "black",
-              title = "Forecast Dashboard | Discovery | Engineering | Wikimedia Foundation")
+dashboardPage(
+  header, sidebar, body, skin = "black",
+  title = "Discovery's Predictive Analytics Dashboard | Wikimedia Foundation"
+)

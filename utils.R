@@ -3,13 +3,14 @@ library(magrittr)
 library(polloi)
 
 read_api <- function() {
-  arima_forecast <- read_dataset("discovery-forecasts/search_api_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- read_dataset("discovery-forecasts/api_cirrus_arima.tsv", col_types = "Dddddd")
   # arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/search_api_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- read_dataset("discovery-forecasts/search_api_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- read_dataset("discovery-forecasts/api_cirrus_bsts.tsv", col_types = "Dddddd")
   # bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/search_api_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
   interim <- read_dataset("search/search_api_aggregates.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
+    # readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/search/search_api_aggregates.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
     { .$date <- as.Date(.$date); . } %>%
     dplyr::distinct(date, type, .keep_all = TRUE) %>%
     dplyr::filter(type == "cirrus") %>%
@@ -32,6 +33,7 @@ read_zrr <- function() {
   # bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/zrr_overall_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
   interim <- read_dataset("search/cirrus_query_aggregates_no_automata.tsv", col_types = "Dd") %>%
+    # readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/search/cirrus_query_aggregates_no_automata.tsv", col_types = "Dd") %>%
     dplyr::full_join(arima_forecast, by = "date") %>%
     dplyr::full_join(bsts_forecast, by = "date") %>%
     dplyr::rename(actual = rate) %>%
@@ -40,6 +42,47 @@ read_zrr <- function() {
       bsts_percent_error = 100*(actual - bsts_point_est)/bsts_point_est
     )
   zrr_overall <<- xts::xts(interim[, -1], order.by = interim$date)
+}
+
+read_wdqs <- function() {
+  interim <- read_dataset("wdqs/wdqs_aggregates_new.tsv", col_types = "Dclli") %>%
+    # readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/wdqs/wdqs_aggregates_new.tsv", col_types = "Dclli") %>%
+    dplyr::distinct(date, path, http_success, is_automata, .keep_all = TRUE) %>%
+    dplyr::filter(http_success & !is_automata)
+  # Homepage traffic:
+  arima_forecast <- read_dataset("discovery-forecasts/wdqs_homepage_arima.tsv", col_types = "Dddddd")
+  # arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/wdqs_homepage_arima.tsv", col_types = "Dddddd")
+  names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
+  bsts_forecast <- read_dataset("discovery-forecasts/wdqs_homepage_bsts.tsv", col_types = "Dddddd")
+  # bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/wdqs_homepage_bsts.tsv", col_types = "Dddddd")
+  names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
+  wdqs_homepage <<- interim %>%
+    dplyr::filter(path == "/") %>%
+    dplyr::select(c(date, actual = events)) %>%
+    dplyr::full_join(arima_forecast, by = "date") %>%
+    dplyr::full_join(bsts_forecast, by = "date") %>%
+    dplyr::mutate(
+      arima_percent_error = 100*(actual - arima_point_est)/arima_point_est,
+      bsts_percent_error = 100*(actual - bsts_point_est)/bsts_point_est
+    ) %>%
+    { xts::xts(.[, -1], order.by = .$date) }
+  # SPARQL endpoint:
+  arima_forecast <- read_dataset("discovery-forecasts/wdqs_sparql_arima.tsv", col_types = "Dddddd")
+  # arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/wdqs_sparql_arima.tsv", col_types = "Dddddd")
+  names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
+  bsts_forecast <- read_dataset("discovery-forecasts/wdqs_sparql_bsts.tsv", col_types = "Dddddd")
+  # bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/wdqs_sparql_bsts.tsv", col_types = "Dddddd")
+  names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
+  wdqs_sparql <<- interim %>%
+    dplyr::filter(path == "/bigdata/namespace/wdq/sparql") %>%
+    dplyr::select(c(date, actual = events)) %>%
+    dplyr::full_join(arima_forecast, by = "date") %>%
+    dplyr::full_join(bsts_forecast, by = "date") %>%
+    dplyr::mutate(
+      arima_percent_error = 100*(actual - arima_point_est)/arima_point_est,
+      bsts_percent_error = 100*(actual - bsts_point_est)/bsts_point_est
+    ) %>%
+    { xts::xts(.[, -1], order.by = .$date) }
 }
 
 value_box_previous <- function(.data, .model = c("arima", "bsts"), .terms, .up_is_good = TRUE) {
@@ -67,7 +110,7 @@ value_box_prediction <- function(.data, .model = c("arima", "bsts"), .confidence
   temp <- tail(.data, 1)[, cols_to_keep]
   return({
     if (any(grepl("(rate|%|ctr)", .terms$units))) {
-      valueBox(value = sprintf("~%s%% (%s%%-%s%%)", 100*temp[[1]], 100*temp[[2]], 100*temp[[3]]),
+      valueBox(value = sprintf("~%.2f%% (%.1f%%-%.1f%%)", 100*temp[[1]], 100*temp[[2]], 100*temp[[3]]),
                subtitle = paste0("Expected ", .terms$units, " and ", .confidence, "% Confidence Interval for ", as.character(index(temp), "%A (%d %B %Y)")),
                color = "black")
     } else {
@@ -88,6 +131,9 @@ dygraph_predictions <- function(.data, .model, .confidence, .terms, .dygroup = N
   }
   if (.confidence == "95") {
     cols_to_keep <- sub("80", "95", cols_to_keep, fixed = TRUE)
+  }
+  if (any(grepl("(rate|%|ctr)", .terms$units))) {
+    .data <- 100 * .data
   }
   dyOut <- dygraph(.data[, cols_to_keep],
                    ylab = .terms$units, group = .dygroup,
