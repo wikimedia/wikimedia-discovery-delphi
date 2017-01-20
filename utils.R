@@ -3,10 +3,10 @@ library(magrittr)
 library(polloi)
 
 read_api <- function() {
-  arima_forecast <- read_dataset("discovery-forecasts/api_cirrus_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- read_dataset("discovery-forecasts/search_api_arima.tsv", col_types = "Dddddd")
   # arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/search_api_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- read_dataset("discovery-forecasts/api_cirrus_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- read_dataset("discovery-forecasts/search_api_bsts.tsv", col_types = "Dddddd")
   # bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/search_api_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
   interim <- read_dataset("search/search_api_aggregates.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
