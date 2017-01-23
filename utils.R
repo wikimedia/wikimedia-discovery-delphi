@@ -42,7 +42,7 @@ read_zrr <- function() {
       arima_percent_error = 100*(actual - arima_point_est)/arima_point_est,
       bsts_percent_error = 100*(actual - bsts_point_est)/bsts_point_est
     ) %>%
-    dplyr::filter(date <= "2017-01-20") # for demo-ing until forecasts are daily & automated
+    dplyr::filter(date < "2017-01-20") # for demo-ing until forecasts are daily & automated
   zrr_overall <<- xts::xts(interim[, -1], order.by = interim$date)
 }
 
@@ -51,7 +51,7 @@ read_wdqs <- function() {
     # readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/wdqs/wdqs_aggregates_new.tsv", col_types = "Dclli") %>%
     dplyr::distinct(date, path, http_success, is_automata, .keep_all = TRUE) %>%
     dplyr::filter(http_success & !is_automata) %>%
-    dplyr::filter(date <= "2017-01-20") # for demo-ing until forecasts are daily & automated
+    dplyr::filter(date < "2017-01-20") # for demo-ing until forecasts are daily & automated
   # Homepage traffic:
   arima_forecast <- read_dataset("discovery-forecasts/wdqs_homepage_arima.tsv", col_types = "Dddddd")
   # arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/wdqs_homepage_arima.tsv", col_types = "Dddddd")
