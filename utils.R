@@ -1,16 +1,28 @@
 # Dependent libs
 library(magrittr)
-library(polloi)
+
+safe_read <- function(path, ...) {
+  forecasts <- tryCatch(polloi::read_dataset(path, ...), error = function(e) {
+    data.frame(
+      date = as.Date(character()),
+      point_est = numeric(),
+      lower_80 = numeric(),
+      upper_80 = numeric(),
+      lower_95 = numeric(),
+      upper_95 = numeric()
+    )
+  })
+  # Adjust date due to how Reportupdater-based forecasting works
+  forecasts$date <- forecasts$date + 1
+  return(forecasts)
+}
 
 read_api <- function() {
-  arima_forecast <- read_dataset("discovery-forecasts/search_api_arima.tsv", col_types = "Dddddd")
-  # arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/search_api_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- safe_read("discovery-forecasts/search/api_cirrus_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- read_dataset("discovery-forecasts/search_api_bsts.tsv", col_types = "Dddddd")
-  # bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/search_api_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- safe_read("discovery-forecasts/search/api_cirrus_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
-  interim <- read_dataset("search/search_api_aggregates.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
-    # readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/search/search_api_aggregates.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
+  interim <- polloi::read_dataset("discovery/search/search_api_usage.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
     { .$date <- as.Date(.$date); . } %>%
     dplyr::distinct(date, type, .keep_all = TRUE) %>%
     dplyr::filter(type == "cirrus") %>%
@@ -21,43 +33,34 @@ read_api <- function() {
     dplyr::mutate(
       arima_percent_error = 100*(actual - arima_point_est)/arima_point_est,
       bsts_percent_error = 100*(actual - bsts_point_est)/bsts_point_est
-    ) %>%
-    dplyr::filter(date <= "2017-01-20") # for demo-ing until forecasts are daily & automated
+    )
   api_usage <<- xts::xts(interim[, -1], order.by = interim$date)
 }
 
 read_zrr <- function() {
-  arima_forecast <- read_dataset("discovery-forecasts/zrr_overall_arima.tsv", col_types = "Dddddd")
-  # arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/zrr_overall_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- safe_read("discovery-forecasts/search/zrr_overall_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- read_dataset("discovery-forecasts/zrr_overall_bsts.tsv", col_types = "Dddddd")
-  # bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/zrr_overall_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- safe_read("discovery-forecasts/search/zrr_overall_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
-  interim <- read_dataset("search/cirrus_query_aggregates_no_automata.tsv", col_types = "Dd") %>%
-    # readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/search/cirrus_query_aggregates_no_automata.tsv", col_types = "Dd") %>%
+  interim <- polloi::read_dataset("discovery/search/cirrus_query_aggregates_no_automata.tsv", col_types = "Dd") %>%
     dplyr::full_join(arima_forecast, by = "date") %>%
     dplyr::full_join(bsts_forecast, by = "date") %>%
     dplyr::rename(actual = rate) %>%
     dplyr::mutate(
       arima_percent_error = 100*(actual - arima_point_est)/arima_point_est,
       bsts_percent_error = 100*(actual - bsts_point_est)/bsts_point_est
-    ) %>%
-    dplyr::filter(date < "2017-01-20") # for demo-ing until forecasts are daily & automated
+    )
   zrr_overall <<- xts::xts(interim[, -1], order.by = interim$date)
 }
 
 read_wdqs <- function() {
-  interim <- read_dataset("wdqs/wdqs_aggregates_new.tsv", col_types = "Dclli") %>%
-    # readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/wdqs/wdqs_aggregates_new.tsv", col_types = "Dclli") %>%
+  interim <- polloi::read_dataset("discovery/wdqs/basic_usage.tsv", col_types = "Dclli") %>%
     dplyr::distinct(date, path, http_success, is_automata, .keep_all = TRUE) %>%
-    dplyr::filter(http_success & !is_automata) %>%
-    dplyr::filter(date < "2017-01-20") # for demo-ing until forecasts are daily & automated
+    dplyr::filter(http_success & !is_automata)
   # Homepage traffic:
-  arima_forecast <- read_dataset("discovery-forecasts/wdqs_homepage_arima.tsv", col_types = "Dddddd")
-  # arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/wdqs_homepage_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- safe_read("discovery-forecasts/wdqs/homepage_traffic_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- read_dataset("discovery-forecasts/wdqs_homepage_bsts.tsv", col_types = "Dddddd")
-  # bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/wdqs_homepage_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- safe_read("discovery-forecasts/wdqs/homepage_traffic_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
   wdqs_homepage <<- interim %>%
     dplyr::filter(path == "/") %>%
@@ -70,11 +73,9 @@ read_wdqs <- function() {
     ) %>%
     { xts::xts(.[, -1], order.by = .$date) }
   # SPARQL endpoint:
-  arima_forecast <- read_dataset("discovery-forecasts/wdqs_sparql_arima.tsv", col_types = "Dddddd")
-  # arima_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/wdqs_sparql_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- safe_read("discovery-forecasts/wdqs/sparql_usage_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- read_dataset("discovery-forecasts/wdqs_sparql_bsts.tsv", col_types = "Dddddd")
-  # bsts_forecast <- readr::read_tsv("~/Documents/Projects/Discovery Dashboards/Forecasting/aggregate-datasets/discovery-forecasts/wdqs_sparql_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- safe_read("discovery-forecasts/wdqs/sparql_usage_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
   wdqs_sparql <<- interim %>%
     dplyr::filter(path == "/bigdata/namespace/wdq/sparql") %>%
@@ -94,13 +95,13 @@ value_box_previous <- function(.data, .model = c("arima", "bsts"), .terms, .up_i
   return({
     if (any(grepl("(rate|%|ctr)", .terms$units))) {
       valueBox(value = sprintf("%.2f%% %s %s than expected",
-                               temp[[3]], ifelse(temp[[3]] > 0, .terms$up, .terms$down),
+                               abs(temp[[3]]), ifelse(temp[[3]] > 0, .terms$up, .terms$down),
                                .terms$units),
                subtitle = paste("% error for", as.character(index(temp), "%A (%d %B %Y) |"), sprintf("%.1f%%", 100*temp[[1]]), "actual vs.", sprintf("%.1f%%", 100*temp[[2]]), "predicted by", toupper(.model[1])),
                color = polloi::cond_color(temp[[3]] > 0, ifelse(.up_is_good, "green", "red")))
     } else {
       valueBox(value = sprintf("%.2f%% %s %s than expected",
-                               temp[[3]], ifelse(temp[[3]] > 0, .terms$up, .terms$down),
+                               abs(temp[[3]]), ifelse(temp[[3]] > 0, .terms$up, .terms$down),
                                .terms$units),
                subtitle = paste("% error for", as.character(index(temp), "%A (%d %B %Y) |"), polloi::compress(temp[[1]]), "actual vs.", polloi::compress(temp[[2]]), "predicted by", toupper(.model[1])),
                color = polloi::cond_color(temp[[3]] > 0, ifelse(.up_is_good, "green", "red")))
@@ -162,9 +163,10 @@ dygraph_predictions <- function(.data, .model, .confidence, .terms, .dygroup = N
   }
   return({
     dyOut %>%
-    dyOptions(labelsKMB = !any(grepl("(rate|%|ctr)", .terms$units))) %>%
-    dyLegend(width = 400) %>%
-    dyCSS(css = system.file("custom.css", package = "polloi"))
+      dyOptions(labelsKMB = !any(grepl("(rate|%|ctr)", .terms$units))) %>%
+      dyLegend(width = 400) %>%
+      dyCSS(css = system.file("custom.css", package = "polloi")) %>%
+      dyEvent(as.Date("2017-01-01"), "Reportupdater", labelLoc = "bottom")
   })
 }
 
