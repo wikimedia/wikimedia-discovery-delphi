@@ -38,6 +38,14 @@ shinyServer(function(input, output, session) {
     value_box_prediction(zrr_overall, "bsts", input$confidence, .terms = list(units = "ZRR rate"))
   })
 
+  output$zrr_overall_prophet_previous <- renderValueBox({
+    value_box_previous(zrr_overall, "prophet", .terms = list(units = "ZRR rate", up = "higher", down = "lower"), .up_is_good = FALSE)
+  })
+
+  output$zrr_overall_prophet_prediction <- renderValueBox({
+    value_box_prediction(zrr_overall, "prophet", input$confidence, .terms = list(units = "ZRR rate"))
+  })
+
   output$cirrus_api_arima_previous <- renderValueBox({
     value_box_previous(api_usage, "arima", .terms = list(units = "requests", up = "more", down = "less"))
   })
@@ -52,6 +60,14 @@ shinyServer(function(input, output, session) {
 
   output$cirrus_api_bsts_prediction <- renderValueBox({
     value_box_prediction(api_usage, "bsts", input$confidence, .terms = list(units = "requests"))
+  })
+
+  output$cirrus_api_prophet_previous <- renderValueBox({
+    value_box_previous(api_usage, "prophet", .terms = list(units = "requests", up = "more", down = "less"))
+  })
+
+  output$cirrus_api_prophet_prediction <- renderValueBox({
+    value_box_prediction(api_usage, "prophet", input$confidence, .terms = list(units = "requests"))
   })
 
   output$zrr_overall_predictions <- renderDygraph({

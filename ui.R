@@ -3,7 +3,7 @@ library(shinydashboard)
 library(dygraphs)
 
 #Header elements for the visualisation
-header <- dashboardHeader(title = "Usage Forecasts", disable = FALSE)
+header <- dashboardHeader(title = "Daily Forecasts", disable = FALSE)
 
 #Sidebar elements for the search visualisations.
 sidebar <- dashboardSidebar(
@@ -20,7 +20,7 @@ sidebar <- dashboardSidebar(
              menuSubItem(text = "Homepage traffic", tabName = "wdqs_homepage"),
              menuSubItem(text = "SPARQL endpoint", tabName = "wdqs_sparql"))
   ),
-  radioButtons("models", "Model to show", list("Both" = "both", "ARIMA only" = "arima", "BSTS only" = "bsts"), inline = FALSE),
+  checkboxGroupInput("models", "Model to show", c("ARIMA" = "arima", "BSTS" = "bsts", "Prophet" = "prophet"), selected = c("arima", "bsts", "prophet"), inline = FALSE),
   radioButtons("confidence", "Confidence", c("80%" = "80", "95%" = "95"), inline = FALSE)
 )
 
@@ -31,7 +31,7 @@ body <- dashboardBody(
       tabName = "search_summary",
       h2("Overall zero results rate"),
       conditionalPanel(
-        "input.models === 'both' || input.models === 'arima'",
+        "input.models.indexOf( 'arima' ) != -1",
         h3("ARIMA Forecast"),
         fluidRow(
           valueBoxOutput("zrr_overall_arima_previous", width = 7),
@@ -39,16 +39,24 @@ body <- dashboardBody(
         )
       ),
       conditionalPanel(
-        "input.models === 'both' || input.models === 'bsts'",
+        "input.models.indexOf( 'bsts' ) != -1",
         h3("BSTS Forecast"),
         fluidRow(
           valueBoxOutput("zrr_overall_bsts_previous", width = 7),
           valueBoxOutput("zrr_overall_bsts_prediction", width = 5)
         )
       ),
+      conditionalPanel(
+        "input.models.indexOf( 'prophet' ) != -1",
+        h3("Prophet Forecast"),
+        fluidRow(
+          valueBoxOutput("zrr_overall_prophet_previous", width = 7),
+          valueBoxOutput("zrr_overall_prophet_prediction", width = 5)
+        )
+      ),
       h2("Cirrus API Usage"),
       conditionalPanel(
-        "input.models === 'both' || input.models === 'arima'",
+        "input.models.indexOf( 'arima' ) != -1",
         h3("ARIMA Forecast"),
         fluidRow(
           valueBoxOutput("cirrus_api_arima_previous", width = 7),
@@ -56,11 +64,19 @@ body <- dashboardBody(
         )
       ),
       conditionalPanel(
-        "input.models === 'both' || input.models === 'bsts'",
+        "input.models.indexOf( 'bsts' ) != -1",
         h3("BSTS Forecast"),
         fluidRow(
           valueBoxOutput("cirrus_api_bsts_previous", width = 7),
           valueBoxOutput("cirrus_api_bsts_prediction", width = 5)
+        )
+      ),
+      conditionalPanel(
+        "input.models.indexOf( 'prophet' ) != -1",
+        h3("Prophet Forecast"),
+        fluidRow(
+          valueBoxOutput("cirrus_api_prophet_previous", width = 7),
+          valueBoxOutput("cirrus_api_prophet_prediction", width = 5)
         )
       )
     ),
