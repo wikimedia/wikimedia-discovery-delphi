@@ -18,13 +18,13 @@ safe_read <- function(path, ...) {
 }
 
 read_api <- function() {
-  arima_forecast <- safe_read("discovery-forecasts/search/api_cirrus_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- safe_read("discovery/forecasts/search/api_cirrus_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- safe_read("discovery-forecasts/search/api_cirrus_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- safe_read("discovery/forecasts/search/api_cirrus_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
-  prophet_forecast <- safe_read("discovery-forecasts/search/api_cirrus_prophet.tsv", col_types = "Dddddd")
+  prophet_forecast <- safe_read("discovery/forecasts/search/api_cirrus_prophet.tsv", col_types = "Dddddd")
   names(prophet_forecast) <- c("date", paste0("prophet_", names(prophet_forecast)[-1]))
-  interim <- polloi::read_dataset("discovery/search/search_api_usage.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
+  interim <- polloi::read_dataset("discovery/metrics/search/search_api_usage.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
     { .$date <- as.Date(.$date); . } %>%
     dplyr::distinct(date, type, .keep_all = TRUE) %>%
     dplyr::filter(type == "cirrus") %>%
@@ -42,13 +42,13 @@ read_api <- function() {
 }
 
 read_zrr <- function() {
-  arima_forecast <- safe_read("discovery-forecasts/search/zrr_overall_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- safe_read("discovery/forecasts/search/zrr_overall_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- safe_read("discovery-forecasts/search/zrr_overall_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- safe_read("discovery/forecasts/search/zrr_overall_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
-  prophet_forecast <- safe_read("discovery-forecasts/search/zrr_overall_prophet.tsv", col_types = "Dddddd")
+  prophet_forecast <- safe_read("discovery/forecasts/search/zrr_overall_prophet.tsv", col_types = "Dddddd")
   names(prophet_forecast) <- c("date", paste0("prophet_", names(prophet_forecast)[-1]))
-  interim <- polloi::read_dataset("discovery/search/cirrus_query_aggregates_no_automata.tsv", col_types = "Dd") %>%
+  interim <- polloi::read_dataset("discovery/metrics/search/cirrus_query_aggregates_no_automata.tsv", col_types = "Dd") %>%
     dplyr::full_join(arima_forecast, by = "date") %>%
     dplyr::full_join(bsts_forecast, by = "date") %>%
     dplyr::full_join(prophet_forecast, by = "date") %>%
@@ -62,15 +62,15 @@ read_zrr <- function() {
 }
 
 read_wdqs <- function() {
-  interim <- polloi::read_dataset("discovery/wdqs/basic_usage.tsv", col_types = "Dclli") %>%
+  interim <- polloi::read_dataset("discovery/metrics/wdqs/basic_usage.tsv", col_types = "Dclli") %>%
     dplyr::distinct(date, path, http_success, is_automata, .keep_all = TRUE) %>%
     dplyr::filter(http_success & !is_automata)
   # Homepage traffic:
-  arima_forecast <- safe_read("discovery-forecasts/wdqs/homepage_traffic_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- safe_read("discovery/forecasts/wdqs/homepage_traffic_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- safe_read("discovery-forecasts/wdqs/homepage_traffic_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- safe_read("discovery/forecasts/wdqs/homepage_traffic_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
-  prophet_forecast <- safe_read("discovery-forecasts/wdqs/homepage_traffic_prophet.tsv", col_types = "Dddddd")
+  prophet_forecast <- safe_read("discovery/forecasts/wdqs/homepage_traffic_prophet.tsv", col_types = "Dddddd")
   names(prophet_forecast) <- c("date", paste0("prophet_", names(prophet_forecast)[-1]))
   wdqs_homepage <<- interim %>%
     dplyr::filter(path == "/") %>%
@@ -85,11 +85,11 @@ read_wdqs <- function() {
     ) %>%
     { xts::xts(.[, -1], order.by = .$date) }
   # SPARQL endpoint:
-  arima_forecast <- safe_read("discovery-forecasts/wdqs/sparql_usage_arima.tsv", col_types = "Dddddd")
+  arima_forecast <- safe_read("discovery/forecasts/wdqs/sparql_usage_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- safe_read("discovery-forecasts/wdqs/sparql_usage_bsts.tsv", col_types = "Dddddd")
+  bsts_forecast <- safe_read("discovery/forecasts/wdqs/sparql_usage_bsts.tsv", col_types = "Dddddd")
   names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
-  prophet_forecast <- safe_read("discovery-forecasts/wdqs/sparql_usage_prophet.tsv", col_types = "Dddddd")
+  prophet_forecast <- safe_read("discovery/forecasts/wdqs/sparql_usage_prophet.tsv", col_types = "Dddddd")
   names(prophet_forecast) <- c("date", paste0("prophet_", names(prophet_forecast)[-1]))
   wdqs_sparql <<- interim %>%
     dplyr::filter(path == "/bigdata/namespace/wdq/sparql") %>%
