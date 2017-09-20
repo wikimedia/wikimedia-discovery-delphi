@@ -17,30 +17,6 @@ safe_read <- function(path, ...) {
   return(forecasts)
 }
 
-read_api <- function() {
-  arima_forecast <- safe_read("discovery/forecasts/search/api_cirrus_arima.tsv", col_types = "Dddddd")
-  names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
-  bsts_forecast <- safe_read("discovery/forecasts/search/api_cirrus_bsts.tsv", col_types = "Dddddd")
-  names(bsts_forecast) <- c("date", paste0("bsts_", names(bsts_forecast)[-1]))
-  prophet_forecast <- safe_read("discovery/forecasts/search/api_cirrus_prophet.tsv", col_types = "Dddddd")
-  names(prophet_forecast) <- c("date", paste0("prophet_", names(prophet_forecast)[-1]))
-  interim <- polloi::read_dataset("discovery/metrics/search/search_api_usage.tsv", col_names = c("date", "type", "events"), col_types = "cci", skip = 1) %>%
-    { .$date <- as.Date(.$date); . } %>%
-    dplyr::distinct(date, type, .keep_all = TRUE) %>%
-    dplyr::filter(type == "cirrus") %>%
-    tidyr::spread(type, events) %>%
-    dplyr::rename(actual = cirrus) %>%
-    dplyr::full_join(arima_forecast, by = "date") %>%
-    dplyr::full_join(bsts_forecast, by = "date") %>%
-    dplyr::full_join(prophet_forecast, by = "date") %>%
-    dplyr::mutate(
-      arima_percent_error = 100*(actual - arima_point_est)/arima_point_est,
-      bsts_percent_error = 100*(actual - bsts_point_est)/bsts_point_est,
-      prophet_percent_error = 100*(actual - prophet_point_est)/prophet_point_est
-    )
-  api_usage <<- xts::xts(interim[, -1], order.by = interim$date)
-}
-
 read_zrr <- function() {
   arima_forecast <- safe_read("discovery/forecasts/search/zrr_overall_arima.tsv", col_types = "Dddddd")
   names(arima_forecast) <- c("date", paste0("arima_", names(arima_forecast)[-1]))
@@ -108,6 +84,12 @@ read_wdqs <- function() {
 value_box_previous <- function(.data, .model = c("arima", "bsts", "prophet"), .terms, .up_is_good = TRUE) {
   cols_to_keep <- c("actual", paste0(.model[1], c("_point_est", "_percent_error")))
   temp <- tail(.data, 2)[1, cols_to_keep]
+  if (!"up" %in% names(.terms)) {
+    .terms$up <- "higher"
+  }
+  if (!"down" %in% names(.terms)) {
+    .terms$down <- "lower"
+  }
   return({
     if (any(grepl("(rate|%|ctr)", .terms$units))) {
       valueBox(value = sprintf("%.2f%% %s %s than expected", abs(temp[[3]]), ifelse(temp[[3]] > 0, .terms$up, .terms$down), .terms$units),

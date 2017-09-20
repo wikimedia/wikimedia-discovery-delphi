@@ -1,6 +1,7 @@
 library(shiny)
 library(shinydashboard)
 library(dygraphs)
+library(markdown)
 
 #Header elements for the visualisation
 header <- dashboardHeader(title = "Daily Forecasts", disable = FALSE)
@@ -12,15 +13,14 @@ sidebar <- dashboardSidebar(
     tags$script(src = "custom.js")
   ),
   sidebarMenu(
-    menuItem(text = "Search Metrics",
-             menuSubItem(text = "Summary", tabName = "search_summary"),
-             menuSubItem(text = "Overall ZRR", tabName = "zrr_overall"),
-             menuSubItem(text = "Cirrus API", tabName = "cirrus_api")),
-    menuItem(text = "WDQS Usage",
+    menuItem(text = "Summary", tabName = "summary", icon = icon("line-chart")),
+    menuItem(text = "Search Metrics", icon = icon("search"),
+             menuSubItem(text = "Overall ZRR", tabName = "zrr_overall")),
+    menuItem(text = "WDQS Usage", icon = icon("barcode"),
              menuSubItem(text = "Homepage traffic", tabName = "wdqs_homepage"),
              menuSubItem(text = "SPARQL endpoint", tabName = "wdqs_sparql"))
   ),
-  checkboxGroupInput("models", "Model to show", c("ARIMA" = "arima", "BSTS" = "bsts", "Prophet" = "prophet"), selected = c("arima", "bsts", "prophet"), inline = FALSE),
+  checkboxGroupInput("models", "Model to show", c("ARIMA" = "arima", "BSTS" = "bsts", "Prophet" = "prophet"), selected = c("bsts"), inline = FALSE),
   radioButtons("confidence", "Confidence", c("80%" = "80", "95%" = "95"), inline = FALSE)
 )
 
@@ -28,8 +28,8 @@ sidebar <- dashboardSidebar(
 body <- dashboardBody(
   tabItems(
     tabItem(
-      tabName = "search_summary",
-      h2("Overall zero results rate"),
+      tabName = "summary",
+      h2("Overall zero search results rate"),
       conditionalPanel(
         "input.models.indexOf( 'arima' ) != -1",
         h3("ARIMA Forecast"),
@@ -54,29 +54,29 @@ body <- dashboardBody(
           valueBoxOutput("zrr_overall_prophet_prediction", width = 5)
         )
       ),
-      h2("Cirrus API Usage"),
+      h2("Wikidata Query Service SPARQL endpoint usage"),
       conditionalPanel(
         "input.models.indexOf( 'arima' ) != -1",
         h3("ARIMA Forecast"),
         fluidRow(
-          valueBoxOutput("cirrus_api_arima_previous", width = 7),
-          valueBoxOutput("cirrus_api_arima_prediction", width = 5)
+          valueBoxOutput("wdqs_sparql_arima_previous", width = 7),
+          valueBoxOutput("wdqs_sparql_arima_prediction", width = 5)
         )
       ),
       conditionalPanel(
         "input.models.indexOf( 'bsts' ) != -1",
         h3("BSTS Forecast"),
         fluidRow(
-          valueBoxOutput("cirrus_api_bsts_previous", width = 7),
-          valueBoxOutput("cirrus_api_bsts_prediction", width = 5)
+          valueBoxOutput("wdqs_sparql_bsts_previous", width = 7),
+          valueBoxOutput("wdqs_sparql_bsts_prediction", width = 5)
         )
       ),
       conditionalPanel(
         "input.models.indexOf( 'prophet' ) != -1",
         h3("Prophet Forecast"),
         fluidRow(
-          valueBoxOutput("cirrus_api_prophet_previous", width = 7),
-          valueBoxOutput("cirrus_api_prophet_prediction", width = 5)
+          valueBoxOutput("wdqs_sparql_prophet_previous", width = 7),
+          valueBoxOutput("wdqs_sparql_prophet_prediction", width = 5)
         )
       ),
       HTML('<hr style="border-color: gray;">
@@ -87,12 +87,6 @@ body <- dashboardBody(
   | Part of <a href="https://discovery-experimental.wmflabs.org/">Experimental Discovery Dashboards</a>
   | Forecasting Code available as part of <a href="https://github.com/wikimedia/wikimedia-discovery-golden" title="GitHub mirror of wikimedia/discovery/golden">this repository</a>
 </p>')
-    ),
-    tabItem(
-      tabName = "cirrus_api",
-      dygraphOutput("cirrus_api_predictions", height = "300px"),
-      dygraphOutput("cirrus_api_diagnostics", height = "250px"),
-      includeMarkdown("docs/cirrus_api.md")
     ),
     tabItem(
       tabName = "zrr_overall",
@@ -117,5 +111,5 @@ body <- dashboardBody(
 
 dashboardPage(
   header, sidebar, body, skin = "black",
-  title = "Discovery's Predictive Analytics Dashboard | Wikimedia Foundation"
+  title = "Search Platforms's Predictive Analytics Dashboard | Wikimedia Foundation"
 )
