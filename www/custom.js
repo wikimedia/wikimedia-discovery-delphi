@@ -1,4 +1,4 @@
-$(function() {
+$( document ).ready(function() {
 
     // Enables linking to specific tabs:
     if (window.location.hash){
@@ -7,8 +7,9 @@ $(function() {
       $('a[data-value=\"'+tab+'\"]').click();
     }
 
-});
+    // Update the URL in the browser when a tab is clicked on:
+    $('a[href^="#shiny-tab"]').click(function(){
+      window.location.hash = encodeURI($(this).attr('data-value'));
+    });
 
-function round(value, decimals) {
-    return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
-}
+});
