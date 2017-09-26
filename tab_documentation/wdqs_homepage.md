@@ -15,7 +15,7 @@ We also have two competing models:
 <p style="font-size: small;">
   <strong>Link to this dashboard:</strong> <a href="https://discovery.wmflabs.org/forecasts/">https://discovery.wmflabs.org/forecasts/</a>
   | Page is available under <a href="https://creativecommons.org/licenses/by-sa/3.0/" title="Creative Commons Attribution-ShareAlike License">CC-BY-SA 3.0</a>
-  | <a href="https://github.com/bearloga/wmf-delphi" title="Usage Forecasts Dashboard source code repository">Code</a> is licensed under <a href="https://github.com/bearloga/wmf-delphi/blob/master/LICENSE.md" title="MIT License">MIT</a>
+  | <a href="https://phabricator.wikimedia.org/diffusion/WDDE/" title="Usage Forecasts Dashboard source code repository">Code</a> is licensed under <a href="https://phabricator.wikimedia.org/diffusion/WDDE/browse/master/LICENSE.md" title="MIT License">MIT</a>
   | Part of <a href="https://discovery.wmflabs.org/">Discovery Dashboards</a>
   | Forecasting Code available as part of <a href="https://github.com/wikimedia/wikimedia-discovery-golden" title="GitHub mirror of wikimedia/discovery/golden">this repository</a>
 </p>
