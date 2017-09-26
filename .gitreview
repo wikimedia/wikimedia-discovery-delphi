@@ -2,5 +2,5 @@
 host=gerrit.wikimedia.org
 port=29418
 project=wikimedia/discovery/delphi.git
-track=1
+defaultbranch=develop
 defaultrebase=0
