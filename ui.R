@@ -92,19 +92,19 @@ body <- dashboardBody(
       tabName = "zrr_overall",
       dygraphOutput("zrr_overall_predictions", height = "300px"),
       dygraphOutput("zrr_overall_diagnostics", height = "250px"),
-      includeMarkdown("docs/zrr_overall.md")
+      includeMarkdown("tab_documentation/zrr_overall.md")
     ),
     tabItem(
       tabName = "wdqs_homepage",
       dygraphOutput("wdqs_homepage_predictions", height = "300px"),
       dygraphOutput("wdqs_homepage_diagnostics", height = "250px"),
-      includeMarkdown("docs/wdqs_homepage.md")
+      includeMarkdown("tab_documentation/wdqs_homepage.md")
     ),
     tabItem(
       tabName = "wdqs_sparql",
       dygraphOutput("wdqs_sparql_predictions", height = "300px"),
       dygraphOutput("wdqs_sparql_diagnostics", height = "250px"),
-      includeMarkdown("docs/wdqs_sparql.md")
+      includeMarkdown("tab_documentation/wdqs_sparql.md")
     )
   )
 )
